@@ -1,5 +1,6 @@
 import Tkinter as tk
 import random
+
 import sys
 sys.path.append('~/Library/Python/2.7/site-packages')
 
@@ -8,13 +9,171 @@ from drawingpanel import *
 BOARD_HEIGHT = 300
 BOARD_WIDTH = 300
 BOX_SIZE = 20
-#board = []
 
 NUMBER_MINES = ((BOARD_WIDTH / BOX_SIZE - 1)**2)//10 
+
+class Game():
+
+  def __init__(self):
+    self.master = tk.Tk()
+    self.panel = Canvas(self.master, width = BOARD_WIDTH, height = BOARD_HEIGHT + 100, bg = 'white')
+    self.panel.pack()
+
+
+     
+  def game_over(self):
+
+    self.master.unbind("<Button-1>")
+    self.master.unbind("<Button-2>")
+
+    self.b = Button(self.master, text = 'Play Again?', command = self.new_game)
+    self.panel.create_text(BOARD_WIDTH/2, BOARD_HEIGHT + 40, text  = 'Game Over', fill = 'red') 
+    self.b.pack()
+
+  def new_game(self):
+
+    self.master.destroy()
+
+    main()
+
+
+class Board(Game):
+
+  def __init__(self, Game):
+   
+    self.game = Game
+
+    self.__length = BOARD_HEIGHT/BOX_SIZE - 1
+    self.__width = BOARD_WIDTH/BOX_SIZE -1
+
+    self.__tiles = []
+    
+    row = []
+
+    for i in range(self.__length):
+      for j in range(self.__width):
+        new_tile = Tile(i*BOX_SIZE, j*BOX_SIZE, BOX_SIZE)
+        row.append(new_tile)
+
+      self.__tiles.append(row)
+      row = []
+
+
+  def draw(self, panel):
+
+    panel.delete(ALL)
+
+    marked_mines = 0
+
+    for row in self.__tiles:
+      for tile in row:
+        tile.draw(panel)
+      
+        if(tile.marked_mine):
+          marked_mines += 1
+
+    mines = NUMBER_MINES - marked_mines
+
+    bottom_text = 'Mines left: ' + repr(mines)
+    text_fill = 'black'
+
+    panel.create_text(BOARD_WIDTH/2, BOARD_HEIGHT + 20, text  = bottom_text, fill = text_fill)
+
+
+  # assign mines to random locations across the board. 
+  def assign_mines(self):
+
+    mines_to_assign = NUMBER_MINES
+
+    while(mines_to_assign > 0):
+      x_index = random.randint(0, len(self.__tiles)-1)
+      y_index = random.randint(0, len(self.__tiles)-1)
+
+
+      if(self.__tiles[x_index][y_index].is_mine == False):
+        self.__tiles[x_index][y_index].is_mine = True
+        mines_to_assign -= 1
+
+        for i in range(-1, 2):
+          for j in range(-1, 2):
+            try:
+              if((x_index + i >= 0) and (y_index + j >= 0)):
+                self.__tiles[x_index + i][y_index + j].value += 1
+            except IndexError:
+              pass
+
+
+  def show_neighbors(self, center_x, center_y):
+  
+    for i in range(-1, 2):
+      for j in range(-1, 2):
+        try:
+          if(center_x + i >= 0) and (center_y + j >= 0):
+            if(self.__tiles[center_x + i][center_y+ j].is_clicked == False):
+              self.__tiles[center_x + i][center_y + j].show_self()
+
+              if(self.__tiles[center_x + i][center_y+ j].value == 0):
+                self.show_neighbors(center_x + i, center_y + j)
+
+        except IndexError:  
+          pass
+        
+
+  # reveals the tile that was clicked
+  def left_click_event(self, event):
+ 
+    print("HELLA LEFT CLIX")
+
+    mouse_click = []
+
+    mouse_click.append(event.x)
+    mouse_click.append(event.y)
+
+    box_index_x = (mouse_click[0] - 10) // BOX_SIZE
+    box_index_y = (mouse_click[1] - 10) // BOX_SIZE
+
+    try:
+      self.__tiles[box_index_x][box_index_y].show_self()
+
+      if(self.__tiles[box_index_x][box_index_y].value == 0):
+        self.show_neighbors(box_index_x, box_index_y)
+
+      if(self.__tiles[box_index_x][box_index_y].is_mine):
+        game.game_over()
+
+    except IndexError:
+      pass
+
+    
+    self.draw(game.panel)
+
+  # Marks the clicked square as a mine
+  def right_click_event(self, event):
+
+    print("HELLA RIGHT CLIX")
+
+    mouse_click = []
+
+    mouse_click.append(event.x)
+    mouse_click.append(event.y)
+
+    box_index_x = (mouse_click[0] - 10) // BOX_SIZE
+    box_index_y = (mouse_click[1] - 10) // BOX_SIZE
+
+    try:
+      board.__tiles[box_index_x][box_index_y].marked_mine = True
+
+    except IndexError:
+      pass
+
+    self.draw(game.panel)
+
 
 class Tile():
 
   def __init__(self, x, y, size):
+    self.__x_index = x
+    self.__y_index = y
     self.__x = x + 10
     self.__y = y  + 10
     self.__size = size
@@ -71,175 +230,27 @@ class Tile():
 			         text = str(self.value))
 
   # Tile function to reveal a tile. 
-  def show_self(self, x_index, y_index):
+  def show_self(self):
     self.is_clicked = True
     self.marked_mine = False
 
-    # If the clicked tile has a value of zero, show all the neighbors that are
-    # zero or 1
-    if(self.value == 0):
-      self.show_neighbors(x_index, y_index)
-
-  # Tile function to show all neighbors that have yet to be revealed
-  def show_neighbors(self, x_index, y_index):
-
-    for i in range(-1, 2):
-      for j in range(-1, 2):
-        try:
-          if(x_index + i >= 0) and (y_index + j >= 0):
-            if(board[x_index + i][y_index + j].is_clicked == False):
-              board[x_index + i][y_index + j].show_self(x_index + i, y_index + j)
-
-        except IndexError:  
-          pass
-
-# set up the widget to the correct height/width and draw all the tiles and their
-# current states to the board. 
-#
-# Parameters:   Booalean that controls whether the game is over or not
-# Returns:      Nothing
-def draw_board(game_over):
-
-  panel.delete(ALL)
-
-  marked_mines = 0
-
-  for row in board:
-    for tile in row:
-      tile.draw(panel)
-      
-      if(tile.marked_mine):
-        marked_mines += 1
-
-  mines = NUMBER_MINES - marked_mines
-
-  bottom_text = 'Mines left: ' + repr(mines)
-  text_fill = 'black'
-
-  panel.create_text(BOARD_WIDTH/2, BOARD_HEIGHT + 20, text  = bottom_text, fill = text_fill)
-
-
-# assign mines to random locations across the board. 
-def assign_mines(board):
-
-  mines_to_assign = NUMBER_MINES
-
-  while(mines_to_assign > 0):
-    x_index = random.randint(0, len(board)-1)
-    y_index = random.randint(0, len(board)-1)
-
-
-    if(board[x_index][y_index].is_mine == False):
-      board[x_index][y_index].is_mine = True
-      mines_to_assign -= 1
-
-      for i in range(-1, 2):
-        for j in range(-1, 2):
-          try:
-            if((x_index + i >= 0) and (y_index + j >= 0)):
-              board[x_index + i][y_index + j].value += 1
-          except IndexError:
-            pass
-
-# When the user left-clicks, gather they x, y data and reveal the tile 
-# that surrounds the coordinates.
-def left_click_event(event):
- 
-  mouse_click = []
-
-  mouse_click.append(event.x)
-  mouse_click.append(event.y)
-
-  box_index_x = (mouse_click[0] - 10) // BOX_SIZE
-  box_index_y = (mouse_click[1] - 10) // BOX_SIZE
-
-  try:
-    board[box_index_x][box_index_y].show_self(box_index_x, box_index_y)
-    
-    if(board[box_index_x][box_index_y].is_mine):
-      game_over()
-
-  except IndexError:
-    pass
-  
-  draw_board(False) 
-
-# Right click event. Marks a square as a mine
-def flag_square(event):
-
-  mouse_click = []
-
-  mouse_click.append(event.x)
-  mouse_click.append(event.y)
-
-  box_index_x = (mouse_click[0] - 10) // BOX_SIZE
-  box_index_y = (mouse_click[1] - 10) // BOX_SIZE
-
-
-  try:
-    board[box_index_x][box_index_y].marked_mine = True
-
-
-    draw_board(False)
-
-  except IndexError:
-    pass
-
-    
-def game_over():
-
-  master.unbind("<Button-1>")
-  master.unbind("<Button-2>")
-
-  #draw_board(True)
-  panel.create_text(BOARD_WIDTH/2, BOARD_HEIGHT + 40, text  = 'Game Over', fill = 'red') 
-
-  b = Button(master, text = 'Play Again?', command = main)
-  b.pack()
 
 def main():
 
-  global mines, master, panel, board
+  global mines, game, board
 
-  try:
-    if(master):
-      master.delete(b)
-      master.quit()
-      panel.destroy()
+  game = Game()
 
-  except NameError:
-    pass
+  board = Board(game)
+  board.assign_mines()
 
-  board = []
+  game.master.bind("<Button-1>", board.left_click_event)
+  game.master.bind("<Button-2>", board.right_click_event)
 
-  master = tk.Tk()
 
-  panel = Canvas(master, width = BOARD_WIDTH, height = BOARD_HEIGHT + 100, bg = 'grey')
-  panel.pack()
+  board.draw(game.panel)
 
-  mines = NUMBER_MINES
-
-  boxes_x = BOARD_WIDTH / BOX_SIZE - 1
-  boxes_y = BOARD_HEIGHT / BOX_SIZE - 1
-
-  row = []
-
-  for i in range(boxes_y):
-    for j in range(boxes_x):
-      new_tile = Tile(i*BOX_SIZE, j*BOX_SIZE, BOX_SIZE)
-      row.append(new_tile)
-
-    board.append(row)
-    row = []
-
-  assign_mines(board)  
-
-  draw_board(False)
-
-  master.bind("<Button-1>", left_click_event)
-  master.bind("<Button-2>", flag_square)
-
-  master.mainloop()
+  game.master.mainloop()
 
 
 main()
