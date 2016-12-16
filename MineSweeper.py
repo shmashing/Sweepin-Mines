@@ -23,8 +23,8 @@ class Game():
 
     self._board.assign_mines()
 
-    self._master.bind("<Button-1>", self._board.left_click_event)
-    self._master.bind("<Button-2>", self._board.right_click_event)
+    self._master.bind("<Button-1>", self.left_click_event)
+    self._master.bind("<Button-2>", self.right_click_event)
 
      
   def game_over(self):
@@ -43,6 +43,52 @@ class Game():
     self._board.draw()
 
     self._master.mainloop()
+  # reveals the tile that was clicked
+
+  def left_click_event(self, event):
+ 
+    mouse_click = []
+
+    mouse_click.append(event.x)
+    mouse_click.append(event.y)
+
+    box_index_x = (mouse_click[0] - 10) // BOX_SIZE
+    box_index_y = (mouse_click[1] - 10) // BOX_SIZE
+
+    try:
+      self._board._tiles[box_index_x][box_index_y].show_self()
+
+      if(self._board._tiles[box_index_x][box_index_y].value == 0):
+        self._board.show_neighbors(box_index_x, box_index_y)
+
+      if(self._board._tiles[box_index_x][box_index_y].is_mine):
+        self.game_over()
+
+    except IndexError:
+      pass
+
+    
+    self._board.draw()
+
+  # Marks the clicked square as a mine
+  def right_click_event(self, event):
+
+    mouse_click = []
+
+    mouse_click.append(event.x)
+    mouse_click.append(event.y)
+
+    box_index_x = (mouse_click[0] - 10) // BOX_SIZE
+    box_index_y = (mouse_click[1] - 10) // BOX_SIZE
+
+    try:
+      self.board._tiles[box_index_x][box_index_y].marked_mine = True
+
+    except IndexError:
+      pass
+
+    self._board.draw()
+
 
 
 class Board(Game):
@@ -103,63 +149,21 @@ class Board(Game):
 
   
       for neighbor in self._tiles[x_index][y_index].get_neighbors():
-        self._tiles[neighbor[0]][neighbor[1]].value += 1
+        if(not self._tiles[neighbor[0]][neighbor[1]].is_mine):
+          self._tiles[neighbor[0]][neighbor[1]].value += 1
 
 
   def show_neighbors(self, center_x, center_y):
   
     for neighbor in self._tiles[center_x][center_y].get_neighbors():
-      self._tiles[neighbor[0]][neighbor[1]].show_self()
 
       if(self._tiles[neighbor[0]][neighbor[1]].value == 0):
-        self.show_neighbors(center_x + neighbor[0], center_y + neighbor[1])
-        
+        if(not self._tiles[neighbor[0]][neighbor[1]].is_clicked):
+          self._tiles[neighbor[0]][neighbor[1]].show_self()
+          self.show_neighbors(neighbor[0], neighbor[1]) 
 
-  # reveals the tile that was clicked
-  def left_click_event(self, event):
- 
-    mouse_click = []
-
-    mouse_click.append(event.x)
-    mouse_click.append(event.y)
-
-    box_index_x = (mouse_click[0] - 10) // BOX_SIZE
-    box_index_y = (mouse_click[1] - 10) // BOX_SIZE
-
-    try:
-      self._tiles[box_index_x][box_index_y].show_self()
-
-      if(self._tiles[box_index_x][box_index_y].value == 0):
-        self.show_neighbors(box_index_x, box_index_y)
-
-      if(self._tiles[box_index_x][box_index_y].is_mine):
-        game.game_over()
-
-    except IndexError:
-      pass
-
-    
-    self.draw()
-
-  # Marks the clicked square as a mine
-  def right_click_event(self, event):
-
-    mouse_click = []
-
-    mouse_click.append(event.x)
-    mouse_click.append(event.y)
-
-    box_index_x = (mouse_click[0] - 10) // BOX_SIZE
-    box_index_y = (mouse_click[1] - 10) // BOX_SIZE
-
-    try:
-      self._tiles[box_index_x][box_index_y].marked_mine = True
-
-    except IndexError:
-      pass
-
-    self.draw()
-
+      else:
+        self._tiles[neighbor[0]][neighbor[1]].show_self()
 
 class Tile():
 
@@ -236,9 +240,12 @@ class Tile():
 
         if(0 <= (self._x_index + i) < (BOARD_WIDTH/BOX_SIZE - 1)):
           if(0 <= (self._y_index + j) < (BOARD_WIDTH/BOX_SIZE -1)):
-            #if(i != 0 and j != 0):
-            neighbors.append([self._x_index + i, self._y_index + j])
+            if(not(i == 0 and j == 0)):
+              neighbors.append([self._x_index + i, self._y_index + j])
 
+    #print('center: ' + repr(self._x_index) + ', ' + repr(self._y_index))
+    #print('neighbors: ' + repr(neighbors))
+    #print
     return(neighbors)
 
 
