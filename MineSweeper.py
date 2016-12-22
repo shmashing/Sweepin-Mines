@@ -16,6 +16,8 @@ class Game():
 
   def __init__(self):
     self._master = tk.Tk()
+    self._master.wm_title("Mine Sweeper")
+ 
     self._panel = Canvas(self._master, width = BOARD_WIDTH, height = BOARD_HEIGHT + 100, bg = 'white')
     self._panel.pack()
 
@@ -32,19 +34,21 @@ class Game():
     self._master.unbind("<Button-1>")
     self._master.unbind("<Button-2>")
 
-    self._b = Button(self._master, text = 'Play Again?', command = self.new_game)
-    self._panel.create_text(BOARD_WIDTH/2, BOARD_HEIGHT + 40, text  = 'Game Over', fill = 'red') 
-    self._b.pack()
+    self._new_game_button = Button(self._master, text = 'Play Again?', command = self.new_game)
+    self._quit_button = Button(self._master, text = 'Exit', command = self._master.quit)
+
+    self._new_game_button.pack()
+    self._quit_button.pack()
 
   def new_game(self):
 
+    self._master.destroy()
+
     self.__init__()
-
     self._board.draw()
-
     self._master.mainloop()
-  # reveals the tile that was clicked
 
+  # reveals the tile that was clicked
   def left_click_event(self, event):
  
     mouse_click = []
@@ -56,19 +60,23 @@ class Game():
     box_index_y = (mouse_click[1] - 10) // BOX_SIZE
 
     try:
-      self._board._tiles[box_index_x][box_index_y].show_self()
+      self._board.show_tile(box_index_x, box_index_y)
 
-      if(self._board._tiles[box_index_x][box_index_y].value == 0):
+      if(self._board.get_tile_value(box_index_x, box_index_y) == 0):
         self._board.show_neighbors(box_index_x, box_index_y)
 
-      if(self._board._tiles[box_index_x][box_index_y].is_mine):
+
+      if(self._board.location_is_mine(box_index_x, box_index_y)):
         self.game_over()
 
     except IndexError:
       pass
 
-    
     self._board.draw()
+
+    if(self.check_for_win()):
+      self.game_over()
+
 
   # Marks the clicked square as a mine
   def right_click_event(self, event):
@@ -82,13 +90,38 @@ class Game():
     box_index_y = (mouse_click[1] - 10) // BOX_SIZE
 
     try:
-      self.board._tiles[box_index_x][box_index_y].marked_mine = True
+
+      if(not self._board.location_is_marked(box_index_x, box_index_y)):
+        if(len(self._board._marked_mines) == NUMBER_MINES):
+          x_index = self._board._marked_mines[0][0]
+          y_index = self._board._marked_mines[0][1]
+          self._board.mark_mine(x_index, y_index, False)
+          self._board._marked_mines.pop(0)
+
+      
+        self._board.mark_mine(box_index_x, box_index_y, True)
+        self._board._marked_mines.append([box_index_x, box_index_y])
+
+      else:
+        self._board.mark_mine(box_index_x, box_index_y, False)
+        self._board._marked_mines.remove([box_index_x, box_index_y])
 
     except IndexError:
       pass
 
     self._board.draw()
 
+    if(self.check_for_win()):
+      self.game_over()
+
+
+  def check_for_win(self):
+
+    for mine in self._board._mines:
+      if(not self._board._tiles[mine[0]][mine[1]].marked_mine):
+        return(False)
+
+    return(True)
 
 
 class Board(Game):
@@ -100,6 +133,8 @@ class Board(Game):
     self._panel = panel
 
     self._tiles = []
+    self._mines = []
+    self._marked_mines = []
     
     row = []
 
@@ -126,6 +161,9 @@ class Board(Game):
           marked_mines += 1
 
     mines = NUMBER_MINES - marked_mines
+    
+    if(mines < 0):
+      mines = 0
 
     bottom_text = 'Mines left: ' + repr(mines)
     text_fill = 'black'
@@ -145,6 +183,10 @@ class Board(Game):
 
       if(self._tiles[x_index][y_index].is_mine == False):
         self._tiles[x_index][y_index].is_mine = True
+        self._tiles[x_index][y_index].value = -1
+
+        self._mines.append([x_index, y_index])
+
         mines_to_assign -= 1
 
   
@@ -153,17 +195,49 @@ class Board(Game):
           self._tiles[neighbor[0]][neighbor[1]].value += 1
 
 
+  def show_tile(self, tile_index_x, tile_index_y):
+    self._tiles[tile_index_x][tile_index_y].show_self()
+
   def show_neighbors(self, center_x, center_y):
   
     for neighbor in self._tiles[center_x][center_y].get_neighbors():
 
-      if(self._tiles[neighbor[0]][neighbor[1]].value == 0):
-        if(not self._tiles[neighbor[0]][neighbor[1]].is_clicked):
-          self._tiles[neighbor[0]][neighbor[1]].show_self()
-          self.show_neighbors(neighbor[0], neighbor[1]) 
+      if(not self._tiles[neighbor[0]][neighbor[1]].is_mine):
+        if(self._tiles[neighbor[0]][neighbor[1]].value == 0):
+          if(not self._tiles[neighbor[0]][neighbor[1]].is_clicked):
+            self._tiles[neighbor[0]][neighbor[1]].show_self()
+            self.show_neighbors(neighbor[0], neighbor[1]) 
 
-      else:
-        self._tiles[neighbor[0]][neighbor[1]].show_self()
+        else:
+          self._tiles[neighbor[0]][neighbor[1]].show_self()
+
+  def get_tile_value(self, tile_index_x, tile_index_y):
+
+    return(self._tiles[tile_index_x][tile_index_y].value)
+
+
+  def location_is_mine(self, tile_index_x, tile_index_y):
+
+    if(self._tiles[tile_index_x][tile_index_y].is_mine):
+      return(True)
+
+    return(False)
+
+  def location_is_marked(self, tile_index_x, tile_index_y):
+
+    if(self._tiles[tile_index_x][tile_index_y].marked_mine):
+      return(True)
+
+    return(False)
+
+  def mark_mine(self, tile_index_x, tile_index_y, mark):
+
+    if(mark):
+      self._tiles[tile_index_x][tile_index_y].marked_mine = True
+
+    else:
+      self._tiles[tile_index_x][tile_index_y].marked_mine = False
+      
 
 class Tile():
 
@@ -243,9 +317,6 @@ class Tile():
             if(not(i == 0 and j == 0)):
               neighbors.append([self._x_index + i, self._y_index + j])
 
-    #print('center: ' + repr(self._x_index) + ', ' + repr(self._y_index))
-    #print('neighbors: ' + repr(neighbors))
-    #print
     return(neighbors)
 
 
