@@ -10,7 +10,7 @@ BOARD_HEIGHT = 300
 BOARD_WIDTH = 300
 BOX_SIZE = 20
 
-NUMBER_MINES = ((BOARD_WIDTH / BOX_SIZE - 1)**2)//10 
+NUMBER_MINES = int(((BOARD_WIDTH / BOX_SIZE - 1)**2) * 0.15)
 
 class Game():
 
@@ -248,7 +248,7 @@ class Tile():
     self._y = (y*size)  + 10
     self._size = size
 
-    self.is_clicked = False
+    self.is_clicked = True
     self.is_mine = False
     self.marked_mine = False
     self.value = 0
