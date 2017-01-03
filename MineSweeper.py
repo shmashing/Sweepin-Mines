@@ -1,4 +1,4 @@
-import Tkinter as tk
+import tkinter as tk
 import random
 
 import sys
@@ -15,38 +15,42 @@ NUMBER_MINES = int(((BOARD_WIDTH / BOX_SIZE - 1)**2) * 0.15)
 class Game():
 
   def __init__(self):
-    self._master = tk.Tk()
-    self._master.wm_title("Mine Sweeper")
- 
-    self._panel = Canvas(self._master, width = BOARD_WIDTH, height = BOARD_HEIGHT + 100, bg = 'white')
-    self._panel.pack()
+    self.initialize_game() 
 
-    self._board = Board(self._panel)
 
-    self._board.assign_mines()
+  def initialize_game(self):
+    self.master = tk.Tk()
+    self.master.wm_title("Mine Sweeper")
 
-    self._master.bind("<Button-1>", self.left_click_event)
-    self._master.bind("<Button-2>", self.right_click_event)
+    self.panel = Canvas(self.master, width = BOARD_WIDTH, height = BOARD_HEIGHT + 100, bg = 'white')
+    self.panel.pack()
+
+    self.board = Board(self.panel)
+
+    self.board.assign_mines()
+
+    self.master.bind("<Button-1>", self.left_click_event)
+    self.master.bind("<Button-2>", self.right_click_event)
 
      
   def game_over(self):
 
-    self._master.unbind("<Button-1>")
-    self._master.unbind("<Button-2>")
+    self.master.unbind("<Button-1>")
+    self.master.unbind("<Button-2>")
 
-    self._new_game_button = Button(self._master, text = 'Play Again?', command = self.new_game)
-    self._quit_button = Button(self._master, text = 'Exit', command = self._master.quit)
+    self._new_game_button = Button(self.master, text = 'Play Again?', command = self.new_game)
+    self._quit_button = Button(self.master, text = 'Exit', command = self.master.quit)
 
     self._new_game_button.pack()
     self._quit_button.pack()
 
   def new_game(self):
 
-    self._master.destroy()
+    self.master.destroy()
 
-    self.__init__()
-    self._board.draw()
-    self._master.mainloop()
+    self.initialize_game()
+    self.board.draw()
+    self.master.mainloop()
 
   # reveals the tile that was clicked
   def left_click_event(self, event):
@@ -60,19 +64,19 @@ class Game():
     box_index_y = (mouse_click[1] - 10) // BOX_SIZE
 
     try:
-      self._board.show_tile(box_index_x, box_index_y)
+      self.board.show_tile(box_index_x, box_index_y)
 
-      if(self._board.get_tile_value(box_index_x, box_index_y) == 0):
-        self._board.show_neighbors(box_index_x, box_index_y)
+      if(self.board.get_tile_value(box_index_x, box_index_y) == 0):
+        self.board.show_neighbors(box_index_x, box_index_y)
 
 
-      if(self._board.location_is_mine(box_index_x, box_index_y)):
+      if(self.board.location_is_mine(box_index_x, box_index_y)):
         self.game_over()
 
     except IndexError:
       pass
 
-    self._board.draw()
+    self.board.draw()
 
     if(self.check_for_win()):
       self.game_over()
@@ -91,25 +95,26 @@ class Game():
 
     try:
 
-      if(not self._board.location_is_marked(box_index_x, box_index_y)):
-        if(len(self._board._marked_mines) == NUMBER_MINES):
-          x_index = self._board._marked_mines[0][0]
-          y_index = self._board._marked_mines[0][1]
-          self._board.mark_mine(x_index, y_index, False)
-          self._board._marked_mines.pop(0)
+      if(not self.board.location_is_clicked(box_index_x, box_index_y)):
+        if(not self.board.location_is_marked(box_index_x, box_index_y)):
+          if(len(self.board.marked_mines) == NUMBER_MINES):
+            x_index = self.board.marked_mines[0][0]
+            y_index = self.board.marked_mines[0][1]
+            self.board.mark_mine(x_index, y_index, False)
+            self.board.marked_mines.pop(0)
 
       
-        self._board.mark_mine(box_index_x, box_index_y, True)
-        self._board._marked_mines.append([box_index_x, box_index_y])
+          self.board.mark_mine(box_index_x, box_index_y, True)
+          self.board.marked_mines.append([box_index_x, box_index_y])
 
-      else:
-        self._board.mark_mine(box_index_x, box_index_y, False)
-        self._board._marked_mines.remove([box_index_x, box_index_y])
+        else:
+          self.board.mark_mine(box_index_x, box_index_y, False)
+          self.board.marked_mines.remove([box_index_x, box_index_y])
 
     except IndexError:
       pass
 
-    self._board.draw()
+    self.board.draw()
 
     if(self.check_for_win()):
       self.game_over()
@@ -117,8 +122,8 @@ class Game():
 
   def check_for_win(self):
 
-    for mine in self._board._mines:
-      if(not self._board._tiles[mine[0]][mine[1]].marked_mine):
+    for mine in self.board.mines:
+      if(not self.board.tiles[mine[0]][mine[1]].marked_mine):
         return(False)
 
     return(True)
@@ -128,13 +133,13 @@ class Board(Game):
 
   def __init__(self, panel):
    
-    self._length = BOARD_HEIGHT/BOX_SIZE - 1
-    self._width = BOARD_WIDTH/BOX_SIZE -1
+    self._length = BOARD_HEIGHT//BOX_SIZE - 1
+    self._width = BOARD_WIDTH//BOX_SIZE -1
     self._panel = panel
 
-    self._tiles = []
-    self._mines = []
-    self._marked_mines = []
+    self.tiles = []
+    self.mines = []
+    self.marked_mines = []
     
     row = []
 
@@ -143,7 +148,7 @@ class Board(Game):
         new_tile = Tile(i, j, BOX_SIZE)
         row.append(new_tile)
 
-      self._tiles.append(row)
+      self.tiles.append(row)
       row = []
 
 
@@ -153,7 +158,7 @@ class Board(Game):
 
     marked_mines = 0
 
-    for row in self._tiles:
+    for row in self.tiles:
       for tile in row:
         tile.draw(self._panel)
       
@@ -177,55 +182,61 @@ class Board(Game):
     mines_to_assign = NUMBER_MINES
 
     while(mines_to_assign > 0):
-      x_index = random.randint(0, len(self._tiles)-1)
-      y_index = random.randint(0, len(self._tiles)-1)
+      x_index = random.randint(0, len(self.tiles)-1)
+      y_index = random.randint(0, len(self.tiles)-1)
 
 
-      if(self._tiles[x_index][y_index].is_mine == False):
-        self._tiles[x_index][y_index].is_mine = True
-        self._tiles[x_index][y_index].value = -1
+      if(self.tiles[x_index][y_index].is_mine == False):
+        self.tiles[x_index][y_index].is_mine = True
+        self.tiles[x_index][y_index].value = -1
 
-        self._mines.append([x_index, y_index])
+        self.mines.append([x_index, y_index])
 
         mines_to_assign -= 1
 
   
-      for neighbor in self._tiles[x_index][y_index].get_neighbors():
-        if(not self._tiles[neighbor[0]][neighbor[1]].is_mine):
-          self._tiles[neighbor[0]][neighbor[1]].value += 1
+        for neighbor in self.tiles[x_index][y_index].get_neighbors():
+          if(not self.tiles[neighbor[0]][neighbor[1]].is_mine):
+            self.tiles[neighbor[0]][neighbor[1]].value += 1
 
 
   def show_tile(self, tile_index_x, tile_index_y):
-    self._tiles[tile_index_x][tile_index_y].show_self()
+    self.tiles[tile_index_x][tile_index_y].show_self()
 
   def show_neighbors(self, center_x, center_y):
   
-    for neighbor in self._tiles[center_x][center_y].get_neighbors():
+    for neighbor in self.tiles[center_x][center_y].get_neighbors():
 
-      if(not self._tiles[neighbor[0]][neighbor[1]].is_mine):
-        if(self._tiles[neighbor[0]][neighbor[1]].value == 0):
-          if(not self._tiles[neighbor[0]][neighbor[1]].is_clicked):
-            self._tiles[neighbor[0]][neighbor[1]].show_self()
+      if(not self.tiles[neighbor[0]][neighbor[1]].is_mine):
+        if(self.tiles[neighbor[0]][neighbor[1]].value == 0):
+          if(not self.tiles[neighbor[0]][neighbor[1]].is_clicked):
+            self.tiles[neighbor[0]][neighbor[1]].show_self()
             self.show_neighbors(neighbor[0], neighbor[1]) 
 
         else:
-          self._tiles[neighbor[0]][neighbor[1]].show_self()
+          self.tiles[neighbor[0]][neighbor[1]].show_self()
 
   def get_tile_value(self, tile_index_x, tile_index_y):
 
-    return(self._tiles[tile_index_x][tile_index_y].value)
+    return(self.tiles[tile_index_x][tile_index_y].value)
 
+  def location_is_clicked(self, tile_index_x, tile_index_y):
+
+    if(self.tiles[tile_index_x][tile_index_y].is_clicked):
+      return True
+
+    return False
 
   def location_is_mine(self, tile_index_x, tile_index_y):
 
-    if(self._tiles[tile_index_x][tile_index_y].is_mine):
+    if(self.tiles[tile_index_x][tile_index_y].is_mine):
       return(True)
 
     return(False)
 
   def location_is_marked(self, tile_index_x, tile_index_y):
 
-    if(self._tiles[tile_index_x][tile_index_y].marked_mine):
+    if(self.tiles[tile_index_x][tile_index_y].marked_mine):
       return(True)
 
     return(False)
@@ -233,10 +244,10 @@ class Board(Game):
   def mark_mine(self, tile_index_x, tile_index_y, mark):
 
     if(mark):
-      self._tiles[tile_index_x][tile_index_y].marked_mine = True
+      self.tiles[tile_index_x][tile_index_y].marked_mine = True
 
     else:
-      self._tiles[tile_index_x][tile_index_y].marked_mine = False
+      self.tiles[tile_index_x][tile_index_y].marked_mine = False
       
 
 class Tile():
@@ -248,7 +259,7 @@ class Tile():
     self._y = (y*size)  + 10
     self._size = size
 
-    self.is_clicked = True
+    self.is_clicked = False
     self.is_mine = False
     self.marked_mine = False
     self.value = 0
@@ -273,7 +284,7 @@ class Tile():
 
       if(self.marked_mine):
         panel.create_rectangle(self._x + 5, self._y + 5, self._x + self._size - 5, 
-			       self._y + self._size/2, fill = 'black') 
+			       self._y + self._size/2, fill = 'red') 
 
         panel.create_line(self._x + 5, self._y + 5, self._x + 5, 
 			  self._y + self._size - 2)
@@ -281,23 +292,43 @@ class Tile():
     else:
       if(self.is_mine):
         panel.create_rectangle(self._x, self._y, self._x + self._size, 
-			       self._y + self._size, fill = 'grey')
-        panel.create_line(self._x, self._y, self._x + self._size, 
-			  self._y + self._size, fill = 'red')
-        panel.create_line(self._x, self._y + self._size, self._x + self._size,
-			  self._y, fill = 'red')
-        panel.create_line(self._x, self._y + self._size/2, self._x + self._size, 
-			  self._y + self._size/2, fill = 'red')
-        panel.create_line(self._x + self._size/2, self._y, self._x + self._size/2, 
-			  self._y + self._size, fill = 'red')
+			       self._y + self._size, fill = 'red')
+
+        panel.create_oval(self._x + (self._size/4), self._y + (self._size/4), 
+                               self._x + 3*(self._size/4), self._y + 3*(self._size/4), fill = 'black')
+
+        panel.create_line(self._x + (self._size/4) - 3, self._y + (self._size/2),
+                               self._x + 3*(self._size/4) + 3, self._y + (self._size/2), fill = 'black')
+
+        panel.create_line(self._x + (self._size/2), self._y + (self._size/4) - 3,
+                               self._x + (self._size/2), self._y + 3*(self._size/4) + 3, fill = 'black')
+
+        panel.create_line(self._x + (self._size/4) - 1.5, self._y + (self._size/4) - 1.5,
+                               self._x + 3*(self._size/4) + 1, self._y + 3*(self._size/4) + 1, fill = 'black')
+
+        panel.create_line(self._x + (self._size/4) - 1.5, self._y + 3*(self._size/4) + 1,
+                               self._x + 3*(self._size/4) + 1, self._y + (self._size/4) - 1, fill = 'black')
+
+        panel.create_rectangle(self._x + (self._size/4) + 2, self._y + (self._size/4) + 2,
+                               self._x + (self._size/4) + 5, self._y + (self._size/4) + 5, fill = 'white')
+        
+
+
       
       else:
         panel.create_rectangle(self._x, self._y, self._x + self._size, 
 			       self._y + self._size, fill = 'grey')
 
         if(self.value != 0):
+          self.get_color()
           panel.create_text(self._x + self._size/2, self._y + self._size/2,
-			         text = str(self.value))
+			         text = str(self.value), fill = self.color)
+
+  def get_color(self):
+
+    colors = ['blue', 'dark green', 'red', 'purple', 'orange', 'cyan', 'dark red', 'black']
+
+    self.color = colors[self.value - 1]
 
   # Tile function to reveal a tile. 
   def show_self(self):
@@ -324,9 +355,9 @@ def main():
 
   game = Game()
 
-  game._board.draw()
+  game.board.draw()
 
-  game._master.mainloop()
+  game.master.mainloop()
 
 
 main()
