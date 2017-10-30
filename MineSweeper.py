@@ -1,8 +1,8 @@
-import tkinter as tk
+import Tkinter as tk
 import random
 
-import sys
-sys.path.append('~/Library/Python/2.7/site-packages')
+# import sys
+# sys.path.append('~/Library/Python/2.7/site-packages')
 
 from drawingpanel import *
 
